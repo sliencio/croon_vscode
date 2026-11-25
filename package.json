@@ -1,0 +1,64 @@
+{
+  "name": "ting-reader-vscode",
+  "displayName": "Ting Reader",
+  "description": "在 VS Code 中浏览 Ting Reader 书库、听书并同步收听进度。",
+  "version": "0.1.0",
+  "publisher": "sliencio",
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./src/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sliencio/ting-reader-VSCode.git"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "tingReader.browse",
+        "title": "Ting Reader: 浏览书库"
+      },
+      {
+        "command": "tingReader.recent",
+        "title": "Ting Reader: 继续收听"
+      },
+      {
+        "command": "tingReader.player",
+        "title": "Ting Reader: 打开播放器"
+      },
+      {
+        "command": "tingReader.signIn",
+        "title": "Ting Reader: 登录或切换账号"
+      },
+      {
+        "command": "tingReader.signOut",
+        "title": "Ting Reader: 退出登录"
+      }
+    ]
+  },
+  "scripts": {
+    "check": "node --check src/api.js && node --check src/audio-proxy.js && node --check src/extension.js && node --check src/player.js && node --check media/player.js",
+    "package": "vsce package --skip-license"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "4.1.1"
+  },
+  "overrides": {
+    "minimatch": "11.0.1"
+  }
+}
