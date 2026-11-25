@@ -22,6 +22,14 @@ let startPending = false;
 let failed = false;
 let dragging = false;
 let lastReported = -1;
+let signedIn = false;
+let section = 'browse';
+let request = 0;
+let catalogItems = [];
+let chapterItems = [];
+const pageSize = 100;
+let catalogLimit = pageSize;
+let chapterLimit = pageSize;
 
 function time(value) {
   const total = Math.max(0, Math.floor(value));
@@ -62,6 +70,84 @@ function send(type, fields = {}) {
   vscode.postMessage({ type, serial: source?.serial, ...fields });
 }
 
+function showSection(next, reload = false) {
+  const changed = section !== next;
+  section = next;
+  byId('signed-out').hidden = signedIn;
+  byId('navigation').hidden = !signedIn;
+  byId('catalog').hidden = !signedIn || section === 'playback';
+  byId('now-playing').hidden = !signedIn || section !== 'playback' || !source;
+  byId('no-playback').hidden = !signedIn || section !== 'playback' || Boolean(source);
+  for (const tab of ['browse', 'recent', 'playback']) {
+    byId(tab).setAttribute('aria-pressed', String(tab === section));
+  }
+  if (signedIn && section !== 'playback' && (changed || reload)) {
+    byId('catalog-search').value = '';
+    fetchCatalog();
+  }
+}
+
+function fetchCatalog() {
+  catalogItems = [];
+  catalogLimit = pageSize;
+  byId('catalog-items').replaceChildren();
+  byId('catalog-more').hidden = true;
+  byId('catalog-status').textContent = '正在加载…';
+  byId('library').hidden = section !== 'browse' || byId('library').options.length < 3;
+  send('catalog', { request: ++request, section, libraryId: byId('library').value });
+}
+
+function renderItems(kind, items, limit, onSelect) {
+  const list = byId(kind + '-items');
+  const filter = byId(kind + '-search').value.trim().toLocaleLowerCase();
+  const matches = items.filter(({ title, detail }) =>
+    (title + ' ' + detail).toLocaleLowerCase().includes(filter));
+  const fragment = document.createDocumentFragment();
+  for (const item of matches.slice(0, limit)) {
+    const entry = document.createElement('li');
+    const button = document.createElement('button');
+    const title = document.createElement('span');
+    button.type = 'button';
+    title.textContent = item.title;
+    button.append(title);
+    if (item.detail) {
+      const detail = document.createElement('small');
+      detail.textContent = item.detail;
+      button.append(detail);
+    }
+    if (kind === 'chapter' && item.id === source?.index) button.setAttribute('aria-current', 'true');
+    button.addEventListener('click', () => onSelect(item.id));
+    entry.append(button);
+    fragment.append(entry);
+  }
+  list.replaceChildren(fragment);
+  byId(kind + '-more').hidden = matches.length <= limit;
+  byId(kind + '-status').textContent = matches.length ? ''
+    : filter ? '没有匹配的结果。'
+      : section === 'recent' ? '还没有收听记录。' : '当前媒体库没有书籍。';
+}
+
+function renderCatalog() {
+  renderItems('catalog', catalogItems, catalogLimit, (id) => send('openBook', { id }));
+}
+
+function renderChapters() {
+  renderItems('chapter', chapterItems, chapterLimit, (index) => {
+    switchChapter(index);
+    toggleChapters(false);
+    byId('chapters').focus();
+  });
+}
+
+function toggleChapters(show) {
+  byId('chapter-list').hidden = !show;
+  byId('chapters').setAttribute('aria-expanded', String(show));
+  if (show) {
+    renderChapters();
+    byId('chapter-search').focus();
+  }
+}
+
 function save({ started = false, ended = false } = {}) {
   if (!auditioned || !ready || failed) return;
   const total = duration();
@@ -86,7 +172,9 @@ async function tryPlay() {
 function load(message) {
   changing = true;
   audio.pause();
+  const newBook = source?.bookId !== message.bookId;
   source = message;
+  if (newBook) showSection('playback');
   ready = false;
   auditioned = false;
   startPending = false;
@@ -190,9 +278,29 @@ audio.addEventListener('error', () => {
   render();
 });
 
-byId('browse').addEventListener('click', () => send('browse'));
-byId('recent').addEventListener('click', () => send('recent'));
-byId('chapters').addEventListener('click', () => send('chapters'));
+for (const tab of ['browse', 'recent', 'playback']) {
+  byId(tab).addEventListener('click', () => showSection(tab));
+}
+byId('sign-in').addEventListener('click', () => send('signIn'));
+byId('refresh').addEventListener('click', fetchCatalog);
+byId('library').addEventListener('change', fetchCatalog);
+byId('catalog-search').addEventListener('input', () => {
+  catalogLimit = pageSize;
+  renderCatalog();
+});
+byId('catalog-more').addEventListener('click', () => {
+  catalogLimit += pageSize;
+  renderCatalog();
+});
+byId('chapter-search').addEventListener('input', () => {
+  chapterLimit = pageSize;
+  renderChapters();
+});
+byId('chapter-more').addEventListener('click', () => {
+  chapterLimit += pageSize;
+  renderChapters();
+});
+byId('chapters').addEventListener('click', () => toggleChapters(byId('chapter-list').hidden));
 byId('previous').addEventListener('click', () => switchChapter(source.index - 1));
 byId('next').addEventListener('click', () => switchChapter(source.index + 1));
 byId('rewind').addEventListener('click', () => seek(current() - 15));
@@ -228,8 +336,40 @@ volume.addEventListener('change', updatePreferences);
 
 window.addEventListener('message', ({ data }) => {
   if (data.type === 'load') load(data);
-  else if (data.type === 'switch') switchChapter(data.index);
-  else if (data.type === 'duration' && data.serial === source?.serial) {
+  else if (data.type === 'section') showSection(data.section);
+  else if (data.type === 'session') {
+    signedIn = data.signedIn;
+    catalogItems = [];
+    byId('catalog-search').value = '';
+    byId('library').replaceChildren();
+    ++request;
+    showSection('browse', true);
+  } else if (data.type === 'catalog' && data.request === request && data.section === section) {
+    const library = byId('library');
+    if (data.libraries) {
+      const selected = library.value;
+      library.replaceChildren(new Option('全部媒体库', ''),
+        ...data.libraries.map(({ id, name }) => new Option(name, id)));
+      library.value = data.libraries.some(({ id }) => id === selected) ? selected : '';
+      library.hidden = data.libraries.length < 2;
+    }
+    catalogItems = data.items || [];
+    renderCatalog();
+    if (data.error) byId('catalog-status').textContent = data.error;
+  } else if (data.type === 'chapters') {
+    chapterItems = data.items;
+    chapterLimit = pageSize;
+    byId('chapter-search').value = '';
+    toggleChapters(false);
+  } else if (data.type === 'reset') {
+    source = undefined;
+    ready = false;
+    audio.removeAttribute('src');
+    audio.load();
+    toggleChapters(false);
+    byId('sync').hidden = true;
+    showSection('browse');
+  } else if (data.type === 'duration' && data.serial === source?.serial) {
     source.duration = data.duration;
     render();
   }

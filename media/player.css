@@ -4,91 +4,66 @@
 
 body {
   margin: 0;
-  color: var(--vscode-foreground);
-  background: var(--vscode-editor-background);
+  color: var(--vscode-sideBar-foreground, var(--vscode-foreground));
+  background: var(--vscode-sideBar-background);
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
 }
 
 .player {
-  width: min(660px, calc(100% - 36px));
-  margin: clamp(24px, 9vh, 88px) auto;
+  padding: 12px;
 }
 
-header,
-.identity,
-.actions,
+[hidden] {
+  display: none !important;
+}
+
+nav,
+.catalog-controls,
 .track,
 .transport,
 .options,
 .times {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
 }
 
-header,
-.track,
-.times {
-  justify-content: space-between;
-}
-
-header,
-.actions,
+nav,
 .transport,
 .options {
   flex-wrap: wrap;
 }
 
-.identity,
-.track > div {
-  min-width: 0;
+.track,
+.times,
+.options {
+  justify-content: space-between;
 }
 
-h1,
-h2,
-p {
-  margin: 0;
-  overflow-wrap: anywhere;
+nav {
+  margin-bottom: 12px;
 }
 
-h1 {
-  font-size: 24px;
+nav button {
+  flex: 1 1 auto;
 }
 
-h2 {
-  margin-top: 4px;
-  font-size: clamp(18px, 4vw, 28px);
-}
-
-.mark {
-  display: grid;
-  min-width: 44px;
-  height: 44px;
-  place-items: center;
-  border-radius: 12px;
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-button-background);
-  font-size: 22px;
-  font-weight: bold;
-}
-
-section {
-  margin-top: 24px;
-  padding: clamp(14px, 4vw, 30px);
-  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-  border-radius: 12px;
-  background: var(--vscode-sideBar-background);
+button,
+select,
+input[type="search"] {
+  box-sizing: border-box;
+  font: inherit;
 }
 
 button,
 select {
-  padding: 6px 11px;
+  min-height: 26px;
+  padding: 3px 7px;
   border: 1px solid var(--vscode-button-border, transparent);
-  border-radius: 5px;
+  border-radius: 4px;
   color: var(--vscode-button-secondaryForeground);
   background: var(--vscode-button-secondaryBackground);
-  font: inherit;
 }
 
 button:enabled,
@@ -104,31 +79,70 @@ button:disabled {
   opacity: 0.55;
 }
 
-button.primary {
-  min-width: 72px;
-  padding: 8px 16px;
+button.primary,
+nav button[aria-pressed="true"] {
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
 }
 
-button.primary:enabled:hover {
+button.primary:enabled:hover,
+nav button[aria-pressed="true"]:hover {
   background: var(--vscode-button-hoverBackground);
 }
 
 :focus-visible {
-  outline: 2px solid var(--vscode-focusBorder);
-  outline-offset: 2px;
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+input[type="search"] {
+  display: block;
+  width: 100%;
+  min-height: 26px;
+  margin: 8px 0;
+  padding: 4px 6px;
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
 }
 
 input[type="range"] {
   accent-color: var(--vscode-button-background);
 }
 
-#position {
-  width: 100%;
-  margin: 22px 0 4px;
+.catalog-controls select {
+  flex: 1;
+  min-width: 0;
 }
 
+.items {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.items button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 6px;
+  border-color: transparent;
+  color: inherit;
+  background: transparent;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.items button:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.items button[aria-current] {
+  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+.items small,
 #author,
 #chapter-number,
 .times,
@@ -137,36 +151,57 @@ input[type="range"] {
   color: var(--vscode-descriptionForeground);
 }
 
+.items button[aria-current] small {
+  color: inherit;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: 17px;
+}
+
+h2 {
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+#sign-in,
+.track,
+.transport,
+.options,
+#status:not(:empty),
+#sync:not([hidden]),
+#chapter-list {
+  margin-top: 10px;
+}
+
+.track > button {
+  flex-shrink: 0;
+}
+
+#position {
+  width: 100%;
+  margin: 12px 0 4px;
+}
+
 .times {
   font-variant-numeric: tabular-nums;
-}
-
-.transport,
-.options {
-  margin-top: 18px;
-}
-
-.transport {
-  justify-content: center;
-}
-
-.options {
-  justify-content: space-between;
 }
 
 .options label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 
 #volume {
-  width: min(96px, 20vw);
-}
-
-#status:not(:empty),
-#sync:not([hidden]) {
-  margin-top: 12px;
+  width: 62px;
 }
 
 .visually-hidden {

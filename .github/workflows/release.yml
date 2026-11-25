@@ -1,0 +1,56 @@
+name: 发布 VS Code 插件
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 校验版本
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "::error::标签 $GITHUB_REF_NAME 与插件版本 $version 不一致"
+            exit 1
+          fi
+      - name: 安装打包依赖
+        run: npm ci
+      - name: 检查 JavaScript
+        run: npm run check
+      - name: 打包 VSIX
+        run: npm run package
+      - name: 发布到 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset="ting-reader-vscode-${GITHUB_REF_NAME#v}.vsix"
+          if ! gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --verify-tag --draft --generate-notes --title "Ting Reader ${GITHUB_REF_NAME}"
+          fi
+          assets="$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name')"
+          if ! grep -Fxq "$asset" <<< "$assets"; then
+            gh release upload "$GITHUB_REF_NAME" "$asset"
+          fi
+          if [[ "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft')" == true ]]; then
+            gh release edit "$GITHUB_REF_NAME" --draft=false
+          fi

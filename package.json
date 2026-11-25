@@ -2,7 +2,7 @@
   "name": "ting-reader-vscode",
   "displayName": "Ting Reader",
   "description": "在 VS Code 中浏览 Ting Reader 书库、听书并同步收听进度。",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "sliencio",
   "engines": {
     "vscode": "^1.101.0"
@@ -12,9 +12,6 @@
   ],
   "extensionKind": [
     "ui"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
   ],
   "main": "./src/extension.js",
   "repository": {
@@ -28,6 +25,31 @@
     "virtualWorkspaces": true
   },
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tingReader",
+          "title": "Ting Reader",
+          "icon": "$(headphones)"
+        }
+      ]
+    },
+    "views": {
+      "tingReader": [
+        {
+          "id": "tingReader.sidebar",
+          "type": "webview",
+          "name": "Ting Reader",
+          "icon": "$(headphones)"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        { "command": "tingReader.signIn", "when": "view == tingReader.sidebar" },
+        { "command": "tingReader.signOut", "when": "view == tingReader.sidebar" }
+      ]
+    },
     "commands": [
       {
         "command": "tingReader.browse",
