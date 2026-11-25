@@ -22,4 +22,4 @@ npm run check
 npm run package
 ```
 
-VSIX 生成在项目根目录。推送与 `package.json` 版本相同的 `v` 前缀标签后，GitHub Actions 会打包并将 VSIX 上传到对应的 GitHub Release。
+VSIX 生成在项目根目录。推送与 `package.json` 版本相同的 `v` 前缀标签后，GitHub Actions 会打包并将 VSIX 上传到对应的 GitHub Release。已有标签可在 GitHub Actions 页面手动运行「发布 VS Code 插件」补发。

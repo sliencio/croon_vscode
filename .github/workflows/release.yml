@@ -4,24 +4,33 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要重新发布的已有版本标签
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          ref: refs/tags/${{ env.RELEASE_TAG }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22'
@@ -29,8 +38,8 @@ jobs:
       - name: 校验版本
         run: |
           version="$(node -p 'require("./package.json").version')"
-          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
-            echo "::error::标签 $GITHUB_REF_NAME 与插件版本 $version 不一致"
+          if [[ "$RELEASE_TAG" != "v$version" ]]; then
+            echo "::error::标签 $RELEASE_TAG 与插件版本 $version 不一致"
             exit 1
           fi
       - name: 安装打包依赖
@@ -43,14 +52,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          asset="ting-reader-vscode-${GITHUB_REF_NAME#v}.vsix"
-          if ! gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            gh release create "$GITHUB_REF_NAME" --verify-tag --draft --generate-notes --title "Ting Reader ${GITHUB_REF_NAME}"
+          asset="ting-reader-vscode-${RELEASE_TAG#v}.vsix"
+          if ! gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes --title "Ting Reader ${RELEASE_TAG}"
           fi
-          assets="$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name')"
+          assets="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')"
           if ! grep -Fxq "$asset" <<< "$assets"; then
-            gh release upload "$GITHUB_REF_NAME" "$asset"
+            gh release upload "$RELEASE_TAG" "$asset"
           fi
-          if [[ "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq '.isDraft')" == true ]]; then
-            gh release edit "$GITHUB_REF_NAME" --draft=false
+          if [[ "$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft')" == true ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false
           fi
