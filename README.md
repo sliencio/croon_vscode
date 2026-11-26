@@ -4,8 +4,8 @@
 
 ## 安装与使用
 
-1. 从 [GitHub Releases](https://github.com/sliencio/ting-reader-VSCode/releases/latest) 下载 `.vsix`。打开 VS Code 扩展视图右上角的菜单，选择「从 VSIX 安装」。
-2. 点击 VS Code 最左侧活动栏里的 **Ting Reader 耳机图标**。首次使用时点「登录 Ting Reader」，输入服务器地址、用户名和密码。地址支持反向代理路径前缀，例如 `https://example.com/ting`。
+1. 从 [GitHub Releases](https://github.com/sliencio/croon_vscode/releases/latest) 下载 `.vsix`。打开 VS Code 扩展视图右上角的菜单，选择「从 VSIX 安装」。
+2. 点击 VS Code 最左侧活动栏里的 **耳廓 C 图标**。首次使用时点「登录 Ting Reader」，输入服务器地址、用户名和密码。地址支持反向代理路径前缀，例如 `https://example.com/ting`。
 3. 在左侧边栏浏览书库、搜索书名，或从「续听」选择最近收听过的书。播放器会在同一侧边栏显示。点击「播放」从已保存的进度继续。
 4. 在播放器里可以搜索章节、快退 15 秒、快进 30 秒，以及调整倍速和音量。章节播完会自动接播。切到资源管理器继续写代码，音频会在后台播放。暂停时可切回 Ting Reader 点「暂停」。
 5. 活动栏隐藏时，可在命令面板运行 **Ting Reader: 打开播放器**。切换账号或退出登录，可使用 Ting Reader 侧边栏标题处的更多菜单。
