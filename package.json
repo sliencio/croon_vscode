@@ -2,7 +2,7 @@
   "name": "croon-vscode",
   "displayName": "Croon",
   "description": "在 VS Code 中浏览 Croon 书库、听书并同步收听进度。",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "sliencio",
   "icon": "media/croon-icon.png",
   "engines": {
@@ -47,11 +47,37 @@
     },
     "menus": {
       "view/title": [
-        { "command": "croon.signIn", "when": "view == croon.sidebar" },
-        { "command": "croon.signOut", "when": "view == croon.sidebar" }
+        {
+          "command": "croon.forceSync",
+          "when": "view == croon.sidebar",
+          "group": "1_sync"
+        },
+        {
+          "command": "croon.signIn",
+          "when": "view == croon.sidebar"
+        },
+        {
+          "command": "croon.signOut",
+          "when": "view == croon.sidebar"
+        },
+        {
+          "command": "croon.about",
+          "when": "view == croon.sidebar",
+          "group": "3_help"
+        }
       ]
     },
     "commands": [
+      {
+        "command": "croon.forceSync",
+        "title": "Croon: 强制同步",
+        "shortTitle": "强制同步"
+      },
+      {
+        "command": "croon.about",
+        "title": "Croon: 关于",
+        "shortTitle": "关于"
+      },
       {
         "command": "croon.browse",
         "title": "Croon: 浏览书库"
@@ -75,8 +101,9 @@
     ]
   },
   "scripts": {
-    "check": "node --check src/api.js && node --check src/audio-proxy.js && node --check src/extension.js && node --check src/player.js && node --check media/player.js",
-    "package": "vsce package --skip-license"
+    "check": "node --check src/api.js && node --check src/cover-cache.js && node --check src/media-proxy.js && node --check src/extension.js && node --check src/player.js && node --check media/player.js",
+    "package": "vsce package --skip-license",
+    "test": "node --test test/*.test.js"
   },
   "devDependencies": {
     "@vscode/vsce": "4.1.1"

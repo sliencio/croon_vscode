@@ -46,6 +46,8 @@ jobs:
         run: npm ci
       - name: 检查 JavaScript
         run: npm run check
+      - name: 运行测试
+        run: npm test
       - name: 打包 VSIX
         run: npm run package
       - name: 发布到 GitHub Release

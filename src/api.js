@@ -23,10 +23,11 @@ function segment(value) {
   return encodeURIComponent(value);
 }
 
-class TingApi {
-  constructor(address, token) {
+class CroonApi {
+  constructor(address, token, userId) {
     this.address = serverAddress(address);
     this.token = token;
+    this.userId = userId;
   }
 
   async json(path, { body, notFound } = {}) {
@@ -64,7 +65,7 @@ class TingApi {
     if (!result?.user?.id || typeof result.token !== 'string' || !result.token) {
       throw new Error('服务端未返回有效的登录会话。');
     }
-    return { address: this.address, token: result.token };
+    return { address: this.address, token: result.token, userId: result.user.id };
   }
 
   libraries() {
@@ -90,12 +91,27 @@ class TingApi {
     return this.json('/api/progress/recent');
   }
 
+  async serverVersion() {
+    const health = await this.json('/api/health');
+    return typeof health?.version === 'string' ? health.version.trim() : '';
+  }
+
   progress(bookId) {
     return this.json('/api/progress/' + segment(bookId), { notFound: true });
   }
 
   saveProgress(body) {
     return this.json('/api/progress', { body });
+  }
+
+  cover(bookId, libraryId, path, signal) {
+    const query = new URLSearchParams({ path, book_id: bookId });
+    if (libraryId) query.set('library_id', libraryId);
+    return fetch(this.address + '/api/proxy/cover?' + query, {
+      headers: { authorization: `Bearer ${this.token}` },
+      redirect: 'error',
+      signal,
+    });
   }
 
   stream(chapterId, transcode, offset, range, signal) {
@@ -111,4 +127,4 @@ class TingApi {
   }
 }
 
-module.exports = { TingApi, serverAddress };
+module.exports = { CroonApi, serverAddress };

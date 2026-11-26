@@ -11,7 +11,83 @@ body {
 }
 
 .player {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100vh;
   padding: 12px;
+}
+
+.player > nav {
+  flex: none;
+}
+
+#catalog,
+#about,
+#now-playing {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.about-header,
+.versions > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.about-header button,
+.versions dt {
+  flex: none;
+}
+
+.versions > div {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.versions dd {
+  margin: 0;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+#now-playing {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+#now-playing > :not(#chapter-list) {
+  flex: none;
+}
+
+#chapter-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 115px;
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+
+#chapter-list > :not(#chapter-scroll) {
+  flex: none;
+}
+
+#chapter-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#chapter-pages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 6px;
 }
 
 [hidden] {
@@ -142,6 +218,48 @@ input[type="range"] {
   background: var(--vscode-list-activeSelectionBackground);
 }
 
+.item-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.items button.book-item {
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.book-cover {
+  position: relative;
+  display: grid;
+  width: 32px;
+  height: 44px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+.book-cover::before {
+  width: 12px;
+  height: 16px;
+  border: 1px solid currentColor;
+  border-left-width: 3px;
+  border-radius: 2px;
+  content: '';
+}
+
+.book-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: inherit;
+}
+
 .items small,
 #author,
 #chapter-number,
@@ -183,6 +301,57 @@ h2 {
 
 .track > button {
   flex-shrink: 0;
+}
+
+.transport {
+  justify-content: center;
+}
+
+.icon {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.icon-button {
+  position: relative;
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+}
+
+.seek-button .icon {
+  width: 27px;
+  height: 27px;
+}
+
+.seek-button span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -45%);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+#play {
+  width: 34px;
+  height: 34px;
+}
+
+#play .icon {
+  display: none;
+  width: 21px;
+  height: 21px;
+}
+
+#play[data-mode="play"] .icon-play,
+#play[data-mode="pause"] .icon-pause,
+#play[data-mode="retry"] .icon-retry {
+  display: block;
 }
 
 #position {

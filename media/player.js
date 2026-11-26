@@ -23,13 +23,16 @@ let failed = false;
 let dragging = false;
 let lastReported = -1;
 let signedIn = false;
-let section = 'browse';
+let section = 'recent';
+let sectionBeforeAbout = 'recent';
+let aboutRequest = 0;
 let request = 0;
 let catalogItems = [];
+const catalogCache = new Map();
 let chapterItems = [];
 const pageSize = 100;
 let catalogLimit = pageSize;
-let chapterLimit = pageSize;
+let chapterPage = 0;
 
 function time(value) {
   const total = Math.max(0, Math.floor(value));
@@ -60,7 +63,13 @@ function render() {
     byId('elapsed').value = time(current());
   }
   byId('duration').value = total ? time(total) : '—';
-  play.textContent = failed ? '重试' : audio.paused ? '播放' : '暂停';
+  const mode = failed ? 'retry' : audio.paused ? 'play' : 'pause';
+  if (play.dataset.mode !== mode) {
+    const label = { play: '播放', pause: '暂停', retry: '重试' }[mode];
+    play.dataset.mode = mode;
+    play.title = label;
+    play.setAttribute('aria-label', label);
+  }
   play.disabled = !source || changing;
   byId('rewind').disabled = !ready || changing || failed;
   byId('forward').disabled = !ready || !total || changing || failed;
@@ -72,48 +81,94 @@ function send(type, fields = {}) {
 
 function showSection(next, reload = false) {
   const changed = section !== next;
+  if (next === 'about' && changed) sectionBeforeAbout = section;
   section = next;
-  byId('signed-out').hidden = signedIn;
-  byId('navigation').hidden = !signedIn;
-  byId('catalog').hidden = !signedIn || section === 'playback';
+  const about = section === 'about';
+  const catalog = section === 'browse' || section === 'recent';
+  byId('about').hidden = !about;
+  byId('signed-out').hidden = signedIn || about;
+  byId('navigation').hidden = !signedIn || about;
+  byId('catalog').hidden = !signedIn || !catalog;
   byId('now-playing').hidden = !signedIn || section !== 'playback' || !source;
   byId('no-playback').hidden = !signedIn || section !== 'playback' || Boolean(source);
   for (const tab of ['browse', 'recent', 'playback']) {
     byId(tab).setAttribute('aria-pressed', String(tab === section));
   }
-  if (signedIn && section !== 'playback' && (changed || reload)) {
+  if (about) {
+    byId('server-version').textContent = signedIn ? '正在读取…' : '未连接服务器';
+    if (signedIn) send('about', { request: ++aboutRequest });
+    byId('about-back').focus({ preventScroll: true });
+  } else if (signedIn && catalog && (changed || reload)) {
     byId('catalog-search').value = '';
     fetchCatalog();
   }
 }
 
 function fetchCatalog() {
-  catalogItems = [];
+  const library = byId('library');
+  const cached = catalogCache.get(catalogKey());
   catalogLimit = pageSize;
-  byId('catalog-items').replaceChildren();
-  byId('catalog-more').hidden = true;
-  byId('catalog-status').textContent = '正在加载…';
-  byId('library').hidden = section !== 'browse' || byId('library').options.length < 3;
-  send('catalog', { request: ++request, section, libraryId: byId('library').value });
+  catalogItems = cached || [];
+  renderCatalog();
+  if (!cached) byId('catalog-status').textContent = '正在加载…';
+  library.hidden = section !== 'browse' || library.options.length < 3;
+  send('catalog', { request: ++request, section, libraryId: library.value });
 }
 
-function renderItems(kind, items, limit, onSelect) {
-  const list = byId(kind + '-items');
+function catalogKey() {
+  return section === 'browse' ? 'browse:' + byId('library').value : 'recent';
+}
+
+function receiveCatalog(items) {
+  catalogCache.set(catalogKey(), items);
+  const unchanged = catalogItems.length === items.length && items.every((item, index) => {
+    const previous = catalogItems[index];
+    return item.id === previous.id && item.title === previous.title
+      && item.detail === previous.detail && item.cover === previous.cover;
+  });
+  catalogItems = items;
+  if (!unchanged || !items.length) renderCatalog();
+}
+
+function matchingItems(kind, items) {
   const filter = byId(kind + '-search').value.trim().toLocaleLowerCase();
-  const matches = items.filter(({ title, detail }) =>
-    (title + ' ' + detail).toLocaleLowerCase().includes(filter));
+  return filter ? items.filter(({ title, detail }) =>
+    (title + ' ' + detail).toLocaleLowerCase().includes(filter)) : items;
+}
+
+function renderItems(kind, items, onSelect) {
+  const list = byId(kind + '-items');
   const fragment = document.createDocumentFragment();
-  for (const item of matches.slice(0, limit)) {
+  for (const item of items) {
     const entry = document.createElement('li');
     const button = document.createElement('button');
+    const text = document.createElement('span');
     const title = document.createElement('span');
     button.type = 'button';
     title.textContent = item.title;
-    button.append(title);
+    text.className = 'item-text';
+    text.append(title);
+    if (kind === 'catalog') {
+      button.className = 'book-item';
+      const cover = document.createElement('span');
+      cover.className = 'book-cover';
+      cover.setAttribute('aria-hidden', 'true');
+      if (item.cover) {
+        const image = document.createElement('img');
+        image.alt = '';
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        image.addEventListener('error', () => image.remove(), { once: true });
+        image.src = item.cover;
+        cover.append(image);
+      }
+      button.append(cover);
+    }
+    button.append(text);
     if (item.detail) {
       const detail = document.createElement('small');
       detail.textContent = item.detail;
-      button.append(detail);
+      text.append(detail);
     }
     if (kind === 'chapter' && item.id === source?.index) button.setAttribute('aria-current', 'true');
     button.addEventListener('click', () => onSelect(item.id));
@@ -121,30 +176,52 @@ function renderItems(kind, items, limit, onSelect) {
     fragment.append(entry);
   }
   list.replaceChildren(fragment);
-  byId(kind + '-more').hidden = matches.length <= limit;
-  byId(kind + '-status').textContent = matches.length ? ''
-    : filter ? '没有匹配的结果。'
-      : section === 'recent' ? '还没有收听记录。' : '当前媒体库没有书籍。';
 }
 
 function renderCatalog() {
-  renderItems('catalog', catalogItems, catalogLimit, (id) => send('openBook', { id }));
+  const matches = matchingItems('catalog', catalogItems);
+  renderItems('catalog', matches.slice(0, catalogLimit), (id) => send('openBook', { id, section }));
+  byId('catalog-more').hidden = matches.length <= catalogLimit;
+  byId('catalog-status').textContent = matches.length ? ''
+    : byId('catalog-search').value.trim() ? '没有匹配的结果。'
+      : section === 'recent' ? '还没有收听记录。' : '当前媒体库没有书籍。';
 }
 
-function renderChapters() {
-  renderItems('chapter', chapterItems, chapterLimit, (index) => {
-    switchChapter(index);
-    toggleChapters(false);
-    byId('chapters').focus();
-  });
+function renderChapters(locateCurrent = false) {
+  const matches = matchingItems('chapter', chapterItems);
+  const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+  const currentIndex = locateCurrent ? matches.findIndex(({ id }) => id === source?.index) : -1;
+  if (currentIndex >= 0) chapterPage = Math.floor(currentIndex / pageSize);
+  chapterPage = Math.min(pageCount - 1, Math.max(0, chapterPage));
+  const start = chapterPage * pageSize;
+  const list = byId('chapter-items');
+  const restoreFocus = list.contains(document.activeElement);
+  renderItems('chapter', matches.slice(start, start + pageSize), switchChapter);
+  byId('chapter-status').textContent = matches.length ? '' : '没有匹配的章节。';
+  byId('chapter-pages').hidden = pageCount <= 1;
+  byId('chapter-page-number').value = `${chapterPage + 1} / ${pageCount}`;
+  byId('chapter-previous-page').disabled = chapterPage === 0;
+  byId('chapter-next-page').disabled = chapterPage + 1 >= pageCount;
+
+  const scroll = byId('chapter-scroll');
+  const currentChapter = list.querySelector('[aria-current="true"]');
+  if (currentIndex >= 0 && currentChapter) {
+    const offset = currentChapter.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+    scroll.scrollTop += offset - (scroll.clientHeight - currentChapter.offsetHeight) / 2;
+    if (restoreFocus) currentChapter.focus({ preventScroll: true });
+  } else {
+    scroll.scrollTop = 0;
+  }
 }
 
 function toggleChapters(show) {
   byId('chapter-list').hidden = !show;
   byId('chapters').setAttribute('aria-expanded', String(show));
   if (show) {
-    renderChapters();
-    byId('chapter-search').focus();
+    byId('chapter-search').value = '';
+    chapterPage = 0;
+    renderChapters(true);
+    byId('chapter-search').focus({ preventScroll: true });
   }
 }
 
@@ -173,6 +250,7 @@ function load(message) {
   changing = true;
   audio.pause();
   const newBook = source?.bookId !== message.bookId;
+  const newChapter = source?.index !== message.index;
   source = message;
   if (newBook) showSection('playback');
   ready = false;
@@ -188,6 +266,7 @@ function load(message) {
   byId('chapter-number').textContent = `${source.index + 1} / ${source.count} 章`;
   byId('previous').disabled = source.index === 0;
   byId('next').disabled = source.index + 1 >= source.count;
+  if (newChapter && !byId('chapter-list').hidden) renderChapters(true);
   status.textContent = source.transcode ? '正在加载 MP3 转码音频…' : '正在加载音频…';
   audio.src = source.url;
   audio.load();
@@ -282,6 +361,10 @@ for (const tab of ['browse', 'recent', 'playback']) {
   byId(tab).addEventListener('click', () => showSection(tab));
 }
 byId('sign-in').addEventListener('click', () => send('signIn'));
+byId('about-back').addEventListener('click', () => {
+  showSection(sectionBeforeAbout);
+  byId(signedIn ? sectionBeforeAbout : 'sign-in').focus({ preventScroll: true });
+});
 byId('refresh').addEventListener('click', fetchCatalog);
 byId('library').addEventListener('change', fetchCatalog);
 byId('catalog-search').addEventListener('input', () => {
@@ -293,11 +376,15 @@ byId('catalog-more').addEventListener('click', () => {
   renderCatalog();
 });
 byId('chapter-search').addEventListener('input', () => {
-  chapterLimit = pageSize;
+  chapterPage = 0;
   renderChapters();
 });
-byId('chapter-more').addEventListener('click', () => {
-  chapterLimit += pageSize;
+byId('chapter-previous-page').addEventListener('click', () => {
+  --chapterPage;
+  renderChapters();
+});
+byId('chapter-next-page').addEventListener('click', () => {
+  ++chapterPage;
   renderChapters();
 });
 byId('chapters').addEventListener('click', () => toggleChapters(byId('chapter-list').hidden));
@@ -337,14 +424,26 @@ volume.addEventListener('change', updatePreferences);
 window.addEventListener('message', ({ data }) => {
   if (data.type === 'load') load(data);
   else if (data.type === 'section') showSection(data.section);
-  else if (data.type === 'session') {
+  else if (data.type === 'about' && data.request === aboutRequest && section === 'about') {
+    byId('server-version').textContent = data.version;
+  } else if (data.type === 'session') {
     signedIn = data.signedIn;
     catalogItems = [];
+    catalogCache.clear();
     byId('catalog-search').value = '';
     byId('library').replaceChildren();
     ++request;
-    showSection('browse', true);
+    showSection('recent', true);
+  } else if (data.type === 'catalogInvalidated') {
+    ++request;
+    catalogCache.clear();
+    catalogItems = [];
+    if (section === 'browse' || section === 'recent') fetchCatalog();
   } else if (data.type === 'catalog' && data.request === request && data.section === section) {
+    if (data.error) {
+      byId('catalog-status').textContent = data.error;
+      return;
+    }
     const library = byId('library');
     if (data.libraries) {
       const selected = library.value;
@@ -353,12 +452,10 @@ window.addEventListener('message', ({ data }) => {
       library.value = data.libraries.some(({ id }) => id === selected) ? selected : '';
       library.hidden = data.libraries.length < 2;
     }
-    catalogItems = data.items || [];
-    renderCatalog();
-    if (data.error) byId('catalog-status').textContent = data.error;
+    receiveCatalog(data.items || []);
   } else if (data.type === 'chapters') {
     chapterItems = data.items;
-    chapterLimit = pageSize;
+    chapterPage = 0;
     byId('chapter-search').value = '';
     toggleChapters(false);
   } else if (data.type === 'reset') {
@@ -368,7 +465,7 @@ window.addEventListener('message', ({ data }) => {
     audio.load();
     toggleChapters(false);
     byId('sync').hidden = true;
-    showSection('browse');
+    showSection('recent');
   } else if (data.type === 'duration' && data.serial === source?.serial) {
     source.duration = data.duration;
     render();
