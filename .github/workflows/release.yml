@@ -52,9 +52,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          asset="ting-reader-vscode-${RELEASE_TAG#v}.vsix"
+          asset="croon-vscode-${RELEASE_TAG#v}.vsix"
           if ! gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes --title "Ting Reader ${RELEASE_TAG}"
+            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes --title "Croon ${RELEASE_TAG}"
           fi
           assets="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')"
           if ! grep -Fxq "$asset" <<< "$assets"; then

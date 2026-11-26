@@ -1,7 +1,7 @@
 {
-  "name": "ting-reader-vscode",
-  "displayName": "Ting Reader",
-  "description": "在 VS Code 中浏览 Ting Reader 书库、听书并同步收听进度。",
+  "name": "croon-vscode",
+  "displayName": "Croon",
+  "description": "在 VS Code 中浏览 Croon 书库、听书并同步收听进度。",
   "version": "0.2.0",
   "publisher": "sliencio",
   "icon": "media/croon-icon.png",
@@ -29,48 +29,48 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "tingReader",
-          "title": "Ting Reader",
-          "icon": "media/croon-activity.png"
+          "id": "croon",
+          "title": "Croon",
+          "icon": "media/croon-activity.svg"
         }
       ]
     },
     "views": {
-      "tingReader": [
+      "croon": [
         {
-          "id": "tingReader.sidebar",
+          "id": "croon.sidebar",
           "type": "webview",
-          "name": "Ting Reader",
-          "icon": "media/croon-activity.png"
+          "name": "Croon",
+          "icon": "media/croon-activity.svg"
         }
       ]
     },
     "menus": {
       "view/title": [
-        { "command": "tingReader.signIn", "when": "view == tingReader.sidebar" },
-        { "command": "tingReader.signOut", "when": "view == tingReader.sidebar" }
+        { "command": "croon.signIn", "when": "view == croon.sidebar" },
+        { "command": "croon.signOut", "when": "view == croon.sidebar" }
       ]
     },
     "commands": [
       {
-        "command": "tingReader.browse",
-        "title": "Ting Reader: 浏览书库"
+        "command": "croon.browse",
+        "title": "Croon: 浏览书库"
       },
       {
-        "command": "tingReader.recent",
-        "title": "Ting Reader: 继续收听"
+        "command": "croon.recent",
+        "title": "Croon: 继续收听"
       },
       {
-        "command": "tingReader.player",
-        "title": "Ting Reader: 打开播放器"
+        "command": "croon.player",
+        "title": "Croon: 打开播放器"
       },
       {
-        "command": "tingReader.signIn",
-        "title": "Ting Reader: 登录或切换账号"
+        "command": "croon.signIn",
+        "title": "Croon: 登录或切换账号"
       },
       {
-        "command": "tingReader.signOut",
-        "title": "Ting Reader: 退出登录"
+        "command": "croon.signOut",
+        "title": "Croon: 退出登录"
       }
     ]
   },

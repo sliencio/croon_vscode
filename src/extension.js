@@ -2,11 +2,11 @@ const vscode = require('vscode');
 const { TingApi, serverAddress } = require('./api');
 const { Player, sidebarId, seconds } = require('./player');
 
-const sessionKey = 'tingReader.session';
+const sessionKey = 'croon.session';
 
 async function signIn(context, current) {
   const address = await vscode.window.showInputBox({
-    title: 'Ting Reader 服务器',
+    title: 'Croon 服务器',
     prompt: '输入直连或反向代理地址，包含端口和路径前缀（如有）。',
     value: current?.address || '',
     placeHolder: 'https://ting.example.com',
@@ -22,12 +22,12 @@ async function signIn(context, current) {
   });
   if (address === undefined) return;
   const username = await vscode.window.showInputBox({
-    title: 'Ting Reader 用户名', ignoreFocusOut: true,
+    title: 'Croon 用户名', ignoreFocusOut: true,
     validateInput: (value) => value.trim() ? null : '请输入用户名。',
   });
   if (username === undefined) return;
   const password = await vscode.window.showInputBox({
-    title: 'Ting Reader 密码', password: true, ignoreFocusOut: true,
+    title: 'Croon 密码', password: true, ignoreFocusOut: true,
     validateInput: (value) => value ? null : '请输入密码。',
   });
   if (password === undefined) return;
@@ -70,7 +70,7 @@ async function activate(context) {
     try {
       await action(...args);
     } catch (error) {
-      void vscode.window.showErrorMessage(`Ting Reader · ${error.message}`);
+      void vscode.window.showErrorMessage(`Croon · ${error.message}`);
     } finally {
       busy = false;
     }
@@ -129,10 +129,10 @@ async function activate(context) {
     vscode.window.registerWebviewViewProvider(sidebarId, player, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
-    vscode.commands.registerCommand('tingReader.browse', () => player.reveal('browse')),
-    vscode.commands.registerCommand('tingReader.recent', () => player.reveal('recent')),
-    vscode.commands.registerCommand('tingReader.player', () => player.reveal('playback')),
-    vscode.commands.registerCommand('tingReader.signIn', run(async () => {
+    vscode.commands.registerCommand('croon.browse', () => player.reveal('browse')),
+    vscode.commands.registerCommand('croon.recent', () => player.reveal('recent')),
+    vscode.commands.registerCommand('croon.player', () => player.reveal('playback')),
+    vscode.commands.registerCommand('croon.signIn', run(async () => {
       const next = await signIn(context, api);
       if (next) {
         await player.capture();
@@ -142,13 +142,13 @@ async function activate(context) {
         await player.reveal('browse');
       }
     })),
-    vscode.commands.registerCommand('tingReader.signOut', run(async () => {
+    vscode.commands.registerCommand('croon.signOut', run(async () => {
       await player.capture();
       player.clearPlayback();
       await context.secrets.delete(sessionKey);
       api = undefined;
       player.setSignedIn(false);
-      void vscode.window.showInformationMessage('已退出 Ting Reader。');
+      void vscode.window.showInformationMessage('已退出 Croon。');
     })),
   );
 }

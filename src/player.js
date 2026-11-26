@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const { randomBytes } = require('node:crypto');
 const { AudioProxy } = require('./audio-proxy');
 
-const sidebarId = 'tingReader.sidebar';
+const sidebarId = 'croon.sidebar';
 
 function seconds(value) {
   const total = Math.max(0, Math.floor(Number(value) || 0));
@@ -25,15 +25,15 @@ function html(webview, media, origin) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; media-src ${origin}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
   <link href="${resource('player.css')}" rel="stylesheet">
-  <title>Ting Reader 播放器</title>
+  <title>Croon 播放器</title>
 </head>
 <body>
   <main class="player">
     <section id="signed-out" hidden>
-      <p>登录 Ting Reader 后即可浏览书库和同步收听进度。</p>
-      <button class="primary" id="sign-in" type="button">登录 Ting Reader</button>
+      <p>登录 Croon 后即可浏览书库和同步收听进度。</p>
+      <button class="primary" id="sign-in" type="button">登录 Croon</button>
     </section>
-    <nav id="navigation" aria-label="Ting Reader" hidden>
+    <nav id="navigation" aria-label="Croon" hidden>
       <button id="browse" type="button">书库</button>
       <button id="recent" type="button">续听</button>
       <button id="playback" type="button">播放器</button>
@@ -130,7 +130,7 @@ class Player {
     view.webview.options = { enableScripts: true, localResourceRoots: [media] };
     const messages = view.webview.onDidReceiveMessage((message) => {
       void this.receive(message).catch((error) => {
-        if (this.view === view) void vscode.window.showErrorMessage(`Ting Reader · ${error.message}`);
+        if (this.view === view) void vscode.window.showErrorMessage(`Croon · ${error.message}`);
       });
     });
     view.onDidDispose(() => {
@@ -232,7 +232,7 @@ class Player {
       case 'ready':
         this.ready = true;
         this.post({
-          type: 'preferences', ...this.context.globalState.get('tingReader.playback'),
+          type: 'preferences', ...this.context.globalState.get('croon.playback'),
         });
         this.setSignedIn(this.signedIn);
         this.postChapters();
@@ -240,7 +240,7 @@ class Player {
         this.postSection();
         return;
       case 'preferences':
-        await this.context.globalState.update('tingReader.playback', {
+        await this.context.globalState.update('croon.playback', {
           speed: message.speed, volume: message.volume,
         });
         return;
@@ -248,7 +248,7 @@ class Player {
         if (message.id === this.snapshot?.id) this.snapshot.finish();
         return;
       case 'signIn':
-        await vscode.commands.executeCommand('tingReader.signIn');
+        await vscode.commands.executeCommand('croon.signIn');
         return;
       case 'catalog':
         await this.onCatalog(message);

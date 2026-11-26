@@ -5,7 +5,7 @@ class ApiError extends Error {
       403: '当前账号没有访问权限。',
       404: '服务端找不到请求的内容，请检查服务器地址或刷新书库。',
       429: '请求过于频繁，请稍后重试。',
-    }[status] || `Ting Reader 服务端返回 HTTP ${status}。`);
+    }[status] || `Croon 服务端返回 HTTP ${status}。`);
     this.status = status;
   }
 }
@@ -44,7 +44,7 @@ class TingApi {
         signal: AbortSignal.timeout(15000),
       });
     } catch {
-      throw new Error('无法连接 Ting Reader，请检查地址、网络或 HTTPS 证书后重试。');
+      throw new Error('无法连接 Croon，请检查地址、网络或 HTTPS 证书后重试。');
     }
 
     if (!response.ok) {
@@ -55,7 +55,7 @@ class TingApi {
     try {
       return await response.json();
     } catch {
-      throw new Error('服务器未返回有效的 Ting Reader 数据，请检查服务地址。');
+      throw new Error('服务器未返回有效的 Croon 数据，请检查服务地址。');
     }
   }
 
